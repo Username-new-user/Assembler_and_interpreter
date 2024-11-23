@@ -54,7 +54,6 @@ class Assembler():
     def assemble(self, source_file: str, binary_file: str):
         with open(source_file, 'r') as f:
             lines = f.readlines()
-        
         with open(binary_file, 'wb') as f:
             for line in lines:
                 f.write(self.assemble_line(line))
