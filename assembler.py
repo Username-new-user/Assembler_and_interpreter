@@ -48,3 +48,13 @@ class Assembler():
             packed_data = (A << (size - 8)) | (B << (size - 15)) | (C << (size - 22))
             bit_arr.frombytes(packed_data.to_bytes(6, byteorder='big'))
             return bit_arr
+        else:
+            raise ValueError(f"Unknown command: {command}")
+        
+    def assemble(self, source_file: str, binary_file: str):
+        with open(source_file, 'r') as f:
+            lines = f.readlines()
+        
+        with open(binary_file, 'wb') as f:
+            for line in lines:
+                f.write(self.assemble_line(line))
