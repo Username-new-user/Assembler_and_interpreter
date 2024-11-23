@@ -1,4 +1,14 @@
 import struct
+from bitarray import bitarray
+
+def to_binary(number):
+    return bin(number)[2:]
+
+def to_hex(number):
+    return hex(number)[2:]
+
+def from_binary(binary):
+    return int(binary, 2)
 
 COMMANDS = {
             'LOAD_CONST': 0xC0,
@@ -17,24 +27,24 @@ class Assembler():
         A = COMMANDS[command]
         B = int(parts[1])
         C = int(parts[2])
-        
+        size = 48
+
+        bit_arr = bitarray(endian='big')
+
         if command == 'LOAD_CONST':
-        # Упаковка данных с использованием struct.pack
-            return struct.pack('<BIB', A, B, C)
+            packed_data = (A << (size - 8)) | (B << (size - 34)) | (C << (size - 41))
+            bit_arr.frombytes(packed_data.to_bytes(6, byteorder='big'))
+            return bit_arr
+
         elif command == 'READ_MEM':
-            return struct.pack('<BBB', A, B, C) + struct.pack('<BH', 0, 0)  # 3 байта для заполнения
+            packed_data = (A << (size - 8)) | (B << (size - 15)) | (C << (size - 22))
+            bit_arr.frombytes(packed_data.to_bytes(6, byteorder='big'))
+            return bit_arr
         elif command == 'WRITE_MEM':
-            return struct.pack('<H', 247) + struct.pack('<H', B) + struct.pack('<2H', C)
+            packed_data = (A << (size - 8)) | (B << (size - 35)) | (C << (size - 42))
+            bit_arr.frombytes(packed_data.to_bytes(6, byteorder='big'))
+            return bit_arr
         elif command == 'BINARY_OP_LEQ':
-            return struct.pack('<BBH', A, (B >> 8) & 0xFF, B & 0xFF) + struct.pack('<B', 0x00)  # 1 байт для заполнения
-
-assembler = Assembler()
-line = str('LOAD_CONST 462 64')
-print(assembler.assemble_line(line=line))
-line = str('READ_MEM 15 3')
-print(assembler.assemble_line(line=line))
-line = str('WRITE_MEM 633 127')
-print(assembler.assemble_line(line=line))
-line = str('BINARY_OP_LEQ 40 114')
-print(assembler.assemble_line(line=line))
-
+            packed_data = (A << (size - 8)) | (B << (size - 15)) | (C << (size - 22))
+            bit_arr.frombytes(packed_data.to_bytes(6, byteorder='big'))
+            return bit_arr
