@@ -1,36 +1,58 @@
-import sys
 import json
-import assembler
+from bitarray import bitarray
 
 class UVM:
     def __init__(self, memory_size):
         self.memory = [0] * memory_size
-        self.registers = [0] * 256
+        self.registers = [0] * 1024
 
     def load_program(self, binary_file):
         with open(binary_file, 'rb') as f:
             self.program = f.read()
 
-    def execute(self, output_range):
+    def load_const(self, B, C):
+        self.registers[B] = C
+
+    def read_mem(self, B, C):
+        self.registers[B] = self.memory[C]
+
+    def write_mem(self, B, C):
+        self.memory[B] = self.registers[C]
+
+    def binary_op_leq(self, B, C):
+        self.registers[B] = self.registers[B] <= self.registers[C]
+
+    def execute(self, output_range, output_file):
         output = {}
         pc = 0
-
         while pc < len(self.program):
             instruction = self.program[pc:pc + 6]
             A = instruction[0]
-            B = (instruction[1] << 8) | instruction[2]
-            C = (instruction[3] << 24) | (instruction[4] << 16) | (instruction[5] << 8) | instruction[6]
+            bit_array = bitarray(endian='big')
+            bit_array.frombytes(instruction)
 
-            if A == 0xC0:
-                self.registers[C] = B
-            elif A == 0xF7:
-                self.registers[B] = self.memory[self.registers[C]]
-            elif A == 0x73:
-                self.memory[B] = self.registers[C]
-            elif A == 0x53:
-                self.memory[B] = 1 if self.memory[self.registers[B]] <= self.registers[C] else 0
-            
+            match A:
+                case 192:
+                    B = int(bit_array[8:34].to01(), 2)
+                    C = int(bit_array[34:41].to01(), 2)
+                    self.load_const(B, C)
+                case 247:
+                    B = int(bit_array[8:15].to01(), 2)
+                    C = int(bit_array[15:22].to01(), 2)
+                    self.read_mem(B, C)
+                case 115:
+                    B = int(bit_array[8:35].to01(), 2)
+                    C = int(bit_array[35:42].to01(), 2)
+                    self.write_mem(B, C)
+                case 83:
+                    B = int(bit_array[8:15].to01(), 2)
+                    C = int(bit_array[15:22].to01(), 2)
+                    self.binary_op_leq(B, C)
             pc += 6
 
-        output = {f"address_{i}": self.memory[i] for i in range(output_range[0], output_range[1] + 1)}
+        for i in range(*output_range):
+            output[i] = self.memory[i]
+
+        with open(output_file, 'w') as f:
+            json.dump(output, f, indent=4)
         return output
