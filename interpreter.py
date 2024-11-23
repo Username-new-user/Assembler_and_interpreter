@@ -20,7 +20,7 @@ class UVM:
         self.memory[B] = self.registers[C]
 
     def binary_op_leq(self, B, C):
-        self.registers[B] = self.registers[B] <= self.registers[C]
+        self.memory[B] = int(self.memory[B] <= self.memory[C])
 
     def execute(self, output_range, output_file):
         output = {}

@@ -1,4 +1,4 @@
-import struct
+import json
 from bitarray import bitarray
 
 def to_binary(number):
@@ -18,6 +18,9 @@ COMMANDS = {
         }
 
 class Assembler():
+
+    log = {}
+
     def assemble_line(self, line: str):
         parts = line.split()
         command = parts[0]
@@ -34,26 +37,28 @@ class Assembler():
         if command == 'LOAD_CONST':
             packed_data = (A << (size - 8)) | (B << (size - 34)) | (C << (size - 41))
             bit_arr.frombytes(packed_data.to_bytes(6, byteorder='big'))
-            return bit_arr
 
         elif command == 'READ_MEM':
             packed_data = (A << (size - 8)) | (B << (size - 15)) | (C << (size - 22))
             bit_arr.frombytes(packed_data.to_bytes(6, byteorder='big'))
-            return bit_arr
         elif command == 'WRITE_MEM':
             packed_data = (A << (size - 8)) | (B << (size - 35)) | (C << (size - 42))
             bit_arr.frombytes(packed_data.to_bytes(6, byteorder='big'))
-            return bit_arr
         elif command == 'BINARY_OP_LEQ':
             packed_data = (A << (size - 8)) | (B << (size - 15)) | (C << (size - 22))
             bit_arr.frombytes(packed_data.to_bytes(6, byteorder='big'))
-            return bit_arr
         else:
             raise ValueError(f"Unknown command: {command}")
+        self.log[len(self.log)] = [command, B, C]
+        return bit_arr
+
         
-    def assemble(self, source_file: str, binary_file: str):
+    def assemble(self, source_file: str, binary_file: str, log_file: str):
         with open(source_file, 'r') as f:
             lines = f.readlines()
         with open(binary_file, 'wb') as f:
             for line in lines:
                 f.write(self.assemble_line(line))
+        
+        with open(log_file, 'w') as f:
+            json.dump(self.log, f, indent=4)
